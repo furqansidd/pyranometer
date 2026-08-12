@@ -39,7 +39,7 @@ public class CameraExposureModule: Module {
 
     private func configureAndStart() {
         sessionQueue.async {
-            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
                 return
             }
             self.device = device
