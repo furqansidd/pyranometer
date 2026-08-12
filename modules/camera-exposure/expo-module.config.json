@@ -1,0 +1,9 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["CameraExposureModule"]
+  },
+  "android": {
+    "modules": ["com.pyranometerpro.cameraexposure.CameraExposureModule"]
+  }
+}
