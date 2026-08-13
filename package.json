@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "start": "expo start --dev-client",
+    "start": "node init && expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
-    "build:ios": "eas build --platform ios --profile development",
-    "build:ios:preview": "eas build --platform ios --profile preview",
-    "build:android": "eas build --platform android --profile development"
+    "build:ios": "node init && eas build --platform ios --profile development",
+    "build:ios:preview": "node init && eas build --platform ios --profile preview",
+    "build:android": "node init && eas build --platform android --profile development"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
