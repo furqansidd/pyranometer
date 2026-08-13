@@ -1,11 +1,52 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, Pressable, FlatList, SafeAreaView, Alert } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, StyleSheet, TextInput, Pressable, FlatList, SafeAreaView, Alert, Keyboard } from "react-native";
 import { useMeter } from "../context/MeterContext";
 import { CalibrationPoint } from "../types";
 
 export default function CalibrationScreen() {
   const { ev100, points, fit, addCalibrationPoint, removeCalibrationPoint, clearCalibrationPoints } = useMeter();
   const [refValue, setRefValue] = useState("");
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [measuring, setMeasuring] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
+  const samplesRef = useRef<number[]>([]);
+  const ev100Ref = useRef(ev100);
+
+  useEffect(() => {
+    ev100Ref.current = ev100;
+  }, [ev100]);
+
+  // Collect samples while measuring is active
+  useEffect(() => {
+    if (measuring) {
+      samplesRef.current.push(ev100);
+    }
+  }, [ev100, measuring]);
+
+  // Countdown timer loop
+  useEffect(() => {
+    if (countdown === null) return;
+
+    if (countdown === 0) {
+      setMeasuring(false);
+      setCountdown(null);
+
+      const samples = samplesRef.current;
+      const avgEv100 = samples.length > 0 ? samples.reduce((a, b) => a + b, 0) / samples.length : ev100Ref.current;
+      
+      const parsed = parseFloat(refValue);
+      addCalibrationPoint(parsed, avgEv100);
+      setRefValue("");
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown((c) => (c !== null ? c - 1 : null));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const handleAdd = async () => {
     const parsed = parseFloat(refValue);
@@ -13,8 +54,10 @@ export default function CalibrationScreen() {
       Alert.alert("Enter a valid W/m² reading from your reference pyranometer.");
       return;
     }
-    await addCalibrationPoint(parsed);
-    setRefValue("");
+    Keyboard.dismiss();
+    samplesRef.current = [];
+    setCountdown(5);
+    setMeasuring(true);
   };
 
   const handleClear = () => {
@@ -30,9 +73,8 @@ export default function CalibrationScreen() {
         <Text style={styles.title}>Calibrate</Text>
         <Text style={styles.instructions}>
           Point the phone at the same target your reference pyranometer is reading, at the
-          same moment. Enter its W/m² value and add a point. Repeat across a spread of
-          conditions — shade, hazy sun, full sun — for a reliable fit. 5–10 well-spread
-          points beats many points clustered at one brightness.
+          same moment. Enter its W/m² value and tap Add Point. Hold the phone still next to the
+          reference pyranometer during the 5-second countdown to record a stable reading.
         </Text>
 
         <View style={styles.liveBox}>
@@ -42,15 +84,29 @@ export default function CalibrationScreen() {
 
         <View style={styles.inputRow}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, measuring && styles.inputDisabled]}
             placeholder="Reference W/m²"
             placeholderTextColor="#64748B"
             keyboardType="decimal-pad"
             value={refValue}
             onChangeText={setRefValue}
+            editable={!measuring}
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={() => setIsInputFocused(false)}
           />
-          <Pressable style={styles.addButton} onPress={handleAdd}>
-            <Text style={styles.addButtonText}>Add Point</Text>
+          {isInputFocused && (
+            <Pressable style={styles.doneButton} onPress={() => Keyboard.dismiss()}>
+              <Text style={styles.doneButtonText}>Done</Text>
+            </Pressable>
+          )}
+          <Pressable
+            style={[styles.addButton, measuring && styles.addButtonMeasuring]}
+            onPress={handleAdd}
+            disabled={measuring}
+          >
+            <Text style={styles.addButtonText}>
+              {measuring ? `Measuring (${countdown}s)` : "Add Point"}
+            </Text>
           </Pressable>
         </View>
 
@@ -112,7 +168,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12
   },
+  inputDisabled: { opacity: 0.5 },
+  doneButton: { backgroundColor: "#1E293B", borderRadius: 10, paddingHorizontal: 18, justifyContent: "center" },
+  doneButtonText: { color: "#FFFFFF", fontWeight: "700" },
   addButton: { backgroundColor: "#F59E0B", borderRadius: 10, paddingHorizontal: 18, justifyContent: "center" },
+  addButtonMeasuring: { backgroundColor: "#475569" },
   addButtonText: { color: "#0B0F1A", fontWeight: "700" },
   fitBox: { backgroundColor: "#141B2D", borderRadius: 12, padding: 14, marginBottom: 16 },
   fitText: { color: "#94A3B8", fontSize: 12 },

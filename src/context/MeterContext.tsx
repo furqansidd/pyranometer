@@ -22,7 +22,7 @@ type MeterContextValue = {
   // calibration
   points: CalibrationPoint[];
   fit: FitResult | null;
-  addCalibrationPoint: (referenceIrradiance: number, note?: string) => Promise<void>;
+  addCalibrationPoint: (referenceIrradiance: number, customEv100?: number, note?: string) => Promise<void>;
   removeCalibrationPoint: (id: string) => Promise<void>;
   clearCalibrationPoints: () => Promise<void>;
 
@@ -86,11 +86,12 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addCalibrationPoint = useCallback(
-    async (referenceIrradiance: number, note?: string) => {
+    async (referenceIrradiance: number, customEv100?: number, note?: string) => {
       if (referenceIrradiance <= 0) return;
+      const targetEv100 = customEv100 !== undefined ? customEv100 : ev100;
       const point: CalibrationPoint = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        ev100,
+        ev100: targetEv100,
         referenceIrradiance,
         timestamp: Date.now(),
         note

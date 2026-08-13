@@ -52,19 +52,19 @@ class CameraExposureModule : Module() {
 
     private fun openCamera(promise: Promise) {
         val manager = context().getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val backCameraId = manager.cameraIdList.firstOrNull { id ->
+        val frontCameraId = manager.cameraIdList.firstOrNull { id ->
             manager.getCameraCharacteristics(id)
-                .get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
+                .get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT
         } ?: run {
-            promise.reject("NO_CAMERA", "No back camera found", null)
+            promise.reject("NO_CAMERA", "No front camera found", null)
             return
         }
 
         try {
-            manager.openCamera(backCameraId, object : CameraDevice.StateCallback() {
+            manager.openCamera(frontCameraId, object : CameraDevice.StateCallback() {
                 override fun onOpened(camera: CameraDevice) {
                     cameraDevice = camera
-                    startPreviewSession(manager, backCameraId, camera)
+                    startPreviewSession(manager, frontCameraId, camera)
                     promise.resolve(null)
                 }
                 override fun onDisconnected(camera: CameraDevice) { camera.close() }
